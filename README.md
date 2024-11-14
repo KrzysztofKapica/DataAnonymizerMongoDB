@@ -13,7 +13,7 @@ To run this application on Linux you need to have installed:
 - Upload this repository
 
 Structure of the aplication should look like this:
-
+```bash
 DataAnonymizerMongoDB
 |-----image-server
 |     |-----node_modules (you'll get the modules after REACT installation)
@@ -43,6 +43,7 @@ DataAnonymizerMongoDB
 |-----package-lock.json
 |-----package.json
 |-----README.md
+```
 
 # Usage 
 
