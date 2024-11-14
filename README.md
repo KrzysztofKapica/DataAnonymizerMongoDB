@@ -1,3 +1,105 @@
+# Data anonymizer
+
+"Data anonymizer" is an application run locally, which uses metadata taken from MongoDB database, to anonymize certain areas of images containing fragile information with black rectangles. The application seeks images on a disk based on information taken from the database. A user can see covered areas of images based on information from the database, or will be able to modify it by himself (delete old rectangles, draw new ones, or move old ones). After modifications new cooridantes are sent to the database. In this case the fragile data to anonymize is post addresses.
+The metadata itself is genrated by a previously trained neural network, it saved to database x and y coordinates where is a possibility of presence of data to anonymize. It also contains information where on disk images are located. Later in this readme I'll show how a typcal domcument in MongoDB database looks like. 
+Thanks by REACT llibrary the user has an access to the images through Chrome browser where can carry necessary modifications of images, and decide where to save them.  
+
+# Installation
+
+To run this application on Linux you need to have installed:
+- Node.js v18.20.2, or higher
+- MongoDB - I used Docker for it
+- Install REACT library in directory of the application
+- Upload this repository
+
+Structure of the aplication should look like this:
+
+DataAnonymizerMongoDB
+|-----image-server
+|     |-----node_modules (you'll get the modules after REACT installation)
+|     |-----package-lock.json
+|     |-----package.json
+|     |-----server.js
+|
+|-----node-modules (you'll get the modules after REACT installation)
+|
+|-----public
+|     |-----favicon.ico
+|     |-----index.html
+|     |-----logo1932.png
+|     |-----logo512.png
+|     |-----manifest.json
+|     |-----robots.txt
+|
+|-----src
+|     |-----App.css
+|     |-----App.js
+|     |-----App.test.js
+|     |-----index.css
+|     |-----logo.svg
+|     |-----reportWebVitals.js
+|     |-----setupTests.js
+|
+|-----package-lock.json
+|-----package.json
+|-----README.md
+
+# Usage 
+
+- In Linux terminal go to 'image-server' directory and type down 'node server.js'. This command will start a server side of the application.
+- In Linux termianl fo to 'src' directory and type down 'npm start'. This command will sart front end side of the application. And you'll be able to use the application in Chrome browser at 'http://localhost:3000/' URL. 
+
+For example one document of metadata on MongoDB database looks like this:
+```bash
+  {
+    "_id": "6715569eeecdefd4d8ab3df7",
+    "object_id": 9,
+    "image_path": "/path/to/folder/with/images/PL_11_FOK_399_2_15_0024.jpg",
+    "to_do": "pending",
+    "coordinates": [
+      {
+        "upper_left": {
+          "x": 1305,
+          "y": 232
+        },
+        "lower_right": {
+          "x": 2284,
+          "y": 775
+        }
+      }
+    ]
+  }
+```
+
+ The application takes: 
+- 'image path', and thanks to this is able to find it on a disk.
+- 'coordinates' where the fragile data can be. After the user's modifications this section is upgraded.
+- After the user's modifications updates 'to_do' from 'pending' to 'done'. That helps to avoid browsing images, which were modified earlier.
+
+IMPORTANT NOTE:
+This application runs well only on Chrome browser.
+
+Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec opis co sie na nim dzieje.
+
+# Troubleshooting duing development:
+-opisac problem, kiedy wielkosc zdjecia rozjehala mi sie z wielkoscia canvas i nie mozna bylo rysowac
+-jak zaokraglalem koordynaty nowych prostokatow
+
+# Licence
+This project is open source.
+
+
+
+
+
+korzysta z danych wygenerowanych przez siec neuronowa; sama w sobie nie anonimizuje
+
+ A React application that retrieves images metadata from a MongoDB database, including x and y coordinates of areas to anonymize. User can verify and modify images by adjusting these coordinates, masking sensitive regions with black rectangles for data anonymization. 
+
+
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
