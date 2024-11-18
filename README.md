@@ -1,8 +1,10 @@
 # Data anonymizer
 
-"Data anonymizer" is an application run locally, which uses metadata taken from MongoDB database, to anonymize certain areas of images containing fragile information with black rectangles. The application seeks images on a disk based on information taken from the database. A user can see covered areas of images based on information from the database, or will be able to modify it by himself (delete old rectangles, draw new ones, or move old ones). After modifications new cooridantes are sent to the database. In this case the fragile data to anonymize is post addresses.
-The metadata itself is genrated by a previously trained neural network, it saved to database x and y coordinates where is a possibility of presence of data to anonymize. It also contains information where on disk images are located. Later in this readme I'll show how a typcal domcument in MongoDB database looks like. 
-Thanks by REACT llibrary the user has an access to the images through Chrome browser where can carry necessary modifications of images, and decide where to save them.  
+"Data anonymizer" is an locally run application, which uses metadata taken from MongoDB database, to anonymize certain areas of images containing sensitive information with black rectangles. The application seeks images on a disk based on information taken from the database. A user can see covered areas of images based on information from the database, or will be able to modify it by himself (delete old rectangles, draw new ones, or move old ones). After modifications new coordinates are sent to the database.
+
+The metadata [metadata](#mongodb-database) itself is genrated by a previously trained neural network, and it contains x and y coordinates, where is a possibility of presence of data to anonymize, and information about location of images on a disk. In this case the neural network was trained for seeking handwritten mailing addresses.
+
+Thanks by REACT library the user has an access to the images through Chrome browser where can carry necessary modifications of images, and decide where to save them.
 
 # Installation
 
@@ -12,7 +14,7 @@ To run this application on Linux you need to have installed:
 - Install REACT library in directory of the application
 - Upload this repository
 
-Structure of the aplication should look like this:
+Structure of the application should look like this:
 ```bash
 DataAnonymizerMongoDB
 |-----image-server
@@ -47,10 +49,14 @@ DataAnonymizerMongoDB
 
 # Usage 
 
-- In Linux terminal go to 'image-server' directory and type down 'node server.js'. This command will start a server side of the application.
-- In Linux termianl fo to 'src' directory and type down 'npm start'. This command will sart front end side of the application. And you'll be able to use the application in Chrome browser at 'http://localhost:3000/' URL. 
+- In Linux terminal go to 'image-server' directory and type down **node server.js**. This command will start a server side of the application.
+- In Linux termianl go to 'src' directory and type down **npm start**. This command will sart a front-end side of the application. And you will be able to use the application in Chrome browser at 'http://localhost:3000/' URL.
 
-For example one document of metadata on MongoDB database looks like this:
+**IMPORTANT NOTE:** this application works properly only in Chrome browser!
+
+# MongoDB database
+
+Example of one document of metadata on MongoDB database:
 ```bash
   {
     "_id": "6715569eeecdefd4d8ab3df7",
