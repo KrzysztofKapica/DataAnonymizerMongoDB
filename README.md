@@ -2,9 +2,10 @@
 
 "Data anonymizer" is an locally run application, which uses metadata taken from MongoDB database, to anonymize certain areas of images containing sensitive information with black rectangles. The application seeks images on a disk based on information taken from the database. A user can see covered areas of images based on information from the database, or will be able to modify it by himself (delete old rectangles, draw new ones, or move old ones). After modifications new coordinates are sent to the database.
 
-The metadata [metadata](#mongodb-database) itself is genrated by a previously trained neural network, and it contains x and y coordinates, where is a possibility of presence of data to anonymize, and information about location of images on a disk. In this case the neural network was trained for seeking handwritten mailing addresses.
+The [metadata](#mongodb-database) itself is genrated by a previously trained neural network, and it contains x and y coordinates, where is a possibility of presence of data to anonymize, and information about location of images on a disk. In this case the neural network was trained for seeking handwritten mailing addresses.
 
 Thanks by REACT library the user has an access to the images through Chrome browser where can carry necessary modifications of images, and decide where to save them.
+
 
 # Installation
 
@@ -12,7 +13,7 @@ To run this application on Linux you need to have installed:
 - Node.js v18.20.2, or higher
 - MongoDB - I used Docker for it
 - Install REACT library in directory of the application
-- Upload this repository
+- Download this repository
 
 Structure of the application should look like this:
 ```bash
@@ -47,12 +48,14 @@ DataAnonymizerMongoDB
 |-----README.md
 ```
 
+
 # Usage 
 
 - In Linux terminal go to 'image-server' directory and type down **node server.js**. This command will start a server side of the application.
 - In Linux termianl go to 'src' directory and type down **npm start**. This command will sart a front-end side of the application. And you will be able to use the application in Chrome browser at 'http://localhost:3000/' URL.
 
 **IMPORTANT NOTE:** this application works properly only in Chrome browser!
+
 
 # MongoDB database
 
@@ -78,30 +81,43 @@ Example of one document of metadata on MongoDB database:
   }
 ```
 
- The application takes: 
-- 'image path', and thanks to this is able to find it on a disk.
-- 'coordinates' where the fragile data can be. After the user's modifications this section is upgraded.
-- After the user's modifications updates 'to_do' from 'pending' to 'done'. That helps to avoid browsing images, which were modified earlier.
-
-IMPORTANT NOTE:
-This application runs well only on Chrome browser.
+The application takes: 
+- 'image path', and thanks to this the application is able to find it on a disk.
+- 'coordinates' where the sensitive data can be. After the user's modifications this section is upgraded.
+- After the user's modifications updates 'to_do' from 'pending' to 'done'. It helps to avoid browsing images, which were modified earlier.
 
 Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec opis co sie na nim dzieje.
 
-# Troubleshooting duing development:
+
+# Troubleshooting during development
+
+### Function to round values of rectangle coordinates
+After modifications done by the user, the values of new coordinates had ten values after a dot. So I had to use 'floor' method from 'Math' object to cut off all values after the dot and make the integer.
+```
+  const roundRectangleCoordinates = (rect) => {
+    return {
+      upper_left: {
+        x: Math.floor(rect.upper_left.x),
+        y: Math.floor(rect.upper_left.y),
+      },
+      lower_right: {
+        x: Math.floor(rect.lower_right.x),
+        y: Math.floor(rect.lower_right.y),
+      },
+    };
+  };
+```
+
+### Canvas was bigger than actual size of an image
+
+
 -opisac problem, kiedy wielkosc zdjecia rozjehala mi sie z wielkoscia canvas i nie mozna bylo rysowac
--jak zaokraglalem koordynaty nowych prostokatow
+
 
 # Licence
 This project is open source.
 
 
-
-
-
-korzysta z danych wygenerowanych przez siec neuronowa; sama w sobie nie anonimizuje
-
- A React application that retrieves images metadata from a MongoDB database, including x and y coordinates of areas to anonymize. User can verify and modify images by adjusting these coordinates, masking sensitive regions with black rectangles for data anonymization. 
 
 
 
