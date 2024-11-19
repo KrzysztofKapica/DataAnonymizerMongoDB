@@ -91,8 +91,14 @@ Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec 
 
 # Troubleshooting during development
 
+### Canvas was bigger than actual size of an image
+
+
+-opisac problem, kiedy wielkosc zdjecia rozjehala mi sie z wielkoscia canvas i nie mozna bylo rysowac
+
+
 ### Function to round values of rectangle coordinates
-After modifications done by the user, the values of new coordinates had ten values after a dot. So I had to use 'floor' method from 'Math' object to cut off all values after the dot and make the integer.
+After modifications done by the user, the values of new coordinates had ten values after a dot. So I had to use 'floor' method from 'Math' object to cut off all values after the dot and make integer from it.
 ```
   const roundRectangleCoordinates = (rect) => {
     return {
@@ -107,12 +113,6 @@ After modifications done by the user, the values of new coordinates had ten valu
     };
   };
 ```
-
-### Canvas was bigger than actual size of an image
-
-
--opisac problem, kiedy wielkosc zdjecia rozjehala mi sie z wielkoscia canvas i nie mozna bylo rysowac
-
 
 # Licence
 This project is open source.
