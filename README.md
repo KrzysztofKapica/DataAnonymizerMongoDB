@@ -93,7 +93,7 @@ Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec 
 
 ### Imported image was much bigger than a window of the browser 
 This was caused by different dimensions of canvas, a layer where the user is conducting modifications, and dimensions of rendered image in the browser.
-To fix this I had to get 'clientWidth', and 'clientHeight' properties from DOM (Document Object Model). These are width, and height values of the image rendered in the browser:
+To fix this I had to get 'clientWidth', and 'clientHeight' properties from DOM (Document Object Model) elements. These are width, and height values of the image rendered in the browser:
 ```
 const renderedWidth = image.clientWidth;
 const renderedHeight = image.clientHeight;
@@ -104,7 +104,7 @@ const canvasElement = canvasRef.current;
 canvasElement.width = renderedWidth;
 canvasElement.height = renderedHeight;
 ```
-Thanks to these both, the image and the canvas, have the same size, and they fit in a window of the browser.
+Thanks to these both, the image and the canvas, have the same size, and they fit in the window of the browser. And the browser can use a responsive design. 
 Here is the whole function where the code from above was used:
 ```
   useEffect(() => {
@@ -118,7 +118,6 @@ Here is the whole function where the code from above was used:
         const renderedWidth = image.clientWidth;
         const renderedHeight = image.clientHeight;
 
-        // Calculate scaling factors for width and height
         const scaleX = renderedWidth / naturalWidth;
         const scaleY = renderedHeight / naturalHeight;
 
