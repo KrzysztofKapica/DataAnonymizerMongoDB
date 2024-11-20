@@ -91,11 +91,49 @@ Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec 
 
 # Troubleshooting during development
 
-### Canvas was bigger than actual size of an image
+### Imported image was much bigger than a window of the browser       Canvas was bigger than actual size of an image
+To fix this I had to use 'clientWidth', and 'clientHeight' properties on imported image.
+```
+const renderedWidth = image.clientWidth;
+const renderedHeight = image.clientHeight;
+```
+And to properly overlay canvas on top of the image, I had yo get exact dimension of the image displayed in a browser. To do that I needed this code:I
+```
+const canvasElement = canvasRef.current;
+canvasElement.width = renderedWidth;
+canvasElement.height = renderedHeight;
+```
+Thanks to this both, the image and the canvas, have the same size, and they fit in a window of the browser.
+Here is the whole function where the code from above was used:
+```
+  useEffect(() => {
+    if (imageDataUrl && imageRecord && imageRef.current) {
+      const image = imageRef.current;
 
+      image.onload = () => {
+        const naturalWidth = image.naturalWidth;
+        const naturalHeight = image.naturalHeight;
 
--opisac problem, kiedy wielkosc zdjecia rozjehala mi sie z wielkoscia canvas i nie mozna bylo rysowac
+        const renderedWidth = image.clientWidth;
+        const renderedHeight = image.clientHeight;
 
+        // Calculate scaling factors for width and height
+        const scaleX = renderedWidth / naturalWidth;
+        const scaleY = renderedHeight / naturalHeight;
+
+        const canvasElement = canvasRef.current;
+        canvasElement.width = renderedWidth;
+        canvasElement.height = renderedHeight;
+
+        const ctx = canvasElement.getContext('2d');
+
+        drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, renderedWidth, renderedHeight, 0.5); //0.5 opacity for viewing
+      };
+
+      image.src = imageDataUrl;
+    }
+  }, [imageDataUrl, imageRecord, drawCanvas]);
+```
 
 ### Function to round values of rectangle coordinates
 After modifications done by the user, the values of new coordinates had ten values after a dot. So I had to use 'floor' method from 'Math' object to cut off all values after the dot and make integer from it.
