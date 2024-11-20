@@ -52,7 +52,7 @@ DataAnonymizerMongoDB
 # Usage 
 
 - In Linux terminal go to 'image-server' directory and type down **node server.js**. This command will start a server side of the application.
-- In Linux termianl go to 'src' directory and type down **npm start**. This command will sart a front-end side of the application. And you will be able to use the application in Chrome browser at 'http://localhost:3000/' URL.
+- In Linux termianl go to 'src' directory and type down **npm start**. This command will sart a front-end side of the application. And you will be able to use the application in Chrome browser at http://localhost:PORT/ URL.
 
 **IMPORTANT NOTE:** this application works properly only in Chrome browser!
 
