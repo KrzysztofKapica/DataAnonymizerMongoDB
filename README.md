@@ -1,8 +1,11 @@
 # Data anonymizer
 
-"Data anonymizer" is an application run locally, which uses metadata taken from MongoDB database, to anonymize certain areas of images containing fragile information with black rectangles. The application seeks images on a disk based on information taken from the database. A user can see covered areas of images based on information from the database, or will be able to modify it by himself (delete old rectangles, draw new ones, or move old ones). After modifications new cooridantes are sent to the database. In this case the fragile data to anonymize is post addresses.
-The metadata itself is genrated by a previously trained neural network, it saved to database x and y coordinates where is a possibility of presence of data to anonymize. It also contains information where on disk images are located. Later in this readme I'll show how a typcal domcument in MongoDB database looks like. 
-Thanks by REACT llibrary the user has an access to the images through Chrome browser where can carry necessary modifications of images, and decide where to save them.  
+"Data anonymizer" is an locally run application, which uses metadata taken from MongoDB database, to anonymize certain areas of images containing sensitive information with black rectangles. The application seeks images on a disk based on information taken from the database. A user can see covered areas of images based on information from the database, or will be able to modify it by himself (delete old rectangles, draw new ones, or move old ones). After modifications new coordinates are sent to the database.
+
+The [metadata](#mongodb-database) itself is genrated by a previously trained neural network, and it contains x and y coordinates, where is a possibility of presence of data to anonymize, and information about location of images on a disk. In this case the neural network was trained for seeking handwritten mailing addresses.
+
+Thanks by REACT library the user has an access to the images through Chrome browser where can carry necessary modifications of images, and decide where to save them.
+
 
 # Installation
 
@@ -10,9 +13,9 @@ To run this application on Linux you need to have installed:
 - Node.js v18.20.2, or higher
 - MongoDB - I used Docker for it
 - Install REACT library in directory of the application
-- Upload this repository
+- Download this repository
 
-Structure of the aplication should look like this:
+Structure of the application should look like this:
 ```bash
 DataAnonymizerMongoDB
 |-----image-server
@@ -45,12 +48,18 @@ DataAnonymizerMongoDB
 |-----README.md
 ```
 
+
 # Usage 
 
-- In Linux terminal go to 'image-server' directory and type down 'node server.js'. This command will start a server side of the application.
-- In Linux termianl fo to 'src' directory and type down 'npm start'. This command will sart front end side of the application. And you'll be able to use the application in Chrome browser at 'http://localhost:3000/' URL. 
+- In Linux terminal go to 'image-server' directory and type down **node server.js**. This command will start a server side of the application.
+- In Linux termianl go to 'src' directory and type down **npm start**. This command will sart a front-end side of the application. And you will be able to use the application in Chrome browser at http://localhost:PORT/ URL.
 
-For example one document of metadata on MongoDB database looks like this:
+**IMPORTANT NOTE:** this application works properly only in Chrome browser!
+
+
+# MongoDB database
+
+Example of one document of metadata on MongoDB database:
 ```bash
   {
     "_id": "6715569eeecdefd4d8ab3df7",
@@ -72,102 +81,76 @@ For example one document of metadata on MongoDB database looks like this:
   }
 ```
 
- The application takes: 
-- 'image path', and thanks to this is able to find it on a disk.
-- 'coordinates' where the fragile data can be. After the user's modifications this section is upgraded.
-- After the user's modifications updates 'to_do' from 'pending' to 'done'. That helps to avoid browsing images, which were modified earlier.
-
-IMPORTANT NOTE:
-This application runs well only on Chrome browser.
+The application takes: 
+- 'image path', and thanks to this the application is able to find it on a disk.
+- 'coordinates' where the sensitive data can be. After the user's modifications this section is upgraded.
+- After the user's modifications updates 'to_do' from 'pending' to 'done'. It helps to avoid browsing images, which were modified earlier.
 
 Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec opis co sie na nim dzieje.
 
-# Troubleshooting duing development:
--opisac problem, kiedy wielkosc zdjecia rozjehala mi sie z wielkoscia canvas i nie mozna bylo rysowac
--jak zaokraglalem koordynaty nowych prostokatow
+
+# Troubleshooting during development
+
+### Imported image was much bigger than a window of the browser 
+This was caused by different dimensions of canvas, a layer where the user is conducting modifications, and dimensions of rendered image in the browser.
+To fix this I had to get 'clientWidth', and 'clientHeight' properties from DOM (Document Object Model) elements. These are width, and height values of the image rendered in the browser:
+```
+const renderedWidth = image.clientWidth;
+const renderedHeight = image.clientHeight;
+```
+And to properly overlay canvas on top of the image in the browser, I had to get exact width, and height dimensions of the image displayed in the browser. To do that I needed this code:
+```
+const canvasElement = canvasRef.current;
+canvasElement.width = renderedWidth;
+canvasElement.height = renderedHeight;
+```
+Thanks to these both, the image and the canvas, have the same size, and they fit in the window of the browser. And the browser can use a responsive design. 
+Here is the whole function where the code from above was used:
+```
+  useEffect(() => {
+    if (imageDataUrl && imageRecord && imageRef.current) {
+      const image = imageRef.current;
+
+      image.onload = () => {
+        const naturalWidth = image.naturalWidth;
+        const naturalHeight = image.naturalHeight;
+
+        const renderedWidth = image.clientWidth;
+        const renderedHeight = image.clientHeight;
+
+        const scaleX = renderedWidth / naturalWidth;
+        const scaleY = renderedHeight / naturalHeight;
+
+        const canvasElement = canvasRef.current;
+        canvasElement.width = renderedWidth;
+        canvasElement.height = renderedHeight;
+
+        const ctx = canvasElement.getContext('2d');
+
+        drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, renderedWidth, renderedHeight, 0.5); //0.5 opacity for viewing
+      };
+
+      image.src = imageDataUrl;
+    }
+  }, [imageDataUrl, imageRecord, drawCanvas]);
+```
+
+### Function to round values of rectangle coordinates
+After modifications done by the user, the values of new coordinates had ten values after a dot. So I had to use 'floor' method from 'Math' object to cut off all values after the dot and make integer from it.
+```
+  const roundRectangleCoordinates = (rect) => {
+    return {
+      upper_left: {
+        x: Math.floor(rect.upper_left.x),
+        y: Math.floor(rect.upper_left.y),
+      },
+      lower_right: {
+        x: Math.floor(rect.lower_right.x),
+        y: Math.floor(rect.lower_right.y),
+      },
+    };
+  };
+```
 
 # Licence
 This project is open source.
-
-
-
-
-
-korzysta z danych wygenerowanych przez siec neuronowa; sama w sobie nie anonimizuje
-
- A React application that retrieves images metadata from a MongoDB database, including x and y coordinates of areas to anonymize. User can verify and modify images by adjusting these coordinates, masking sensitive regions with black rectangles for data anonymization. 
-
-
-
-
-
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
