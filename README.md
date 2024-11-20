@@ -91,19 +91,20 @@ Tutaj dac pare screenshotow z obslugi aplikacji. Kazdy screenshot powinien miec 
 
 # Troubleshooting during development
 
-### Imported image was much bigger than a window of the browser       Canvas was bigger than actual size of an image
-To fix this I had to use 'clientWidth', and 'clientHeight' properties on imported image.
+### Imported image was much bigger than a window of the browser
+This was caused by different dimensions of canvas, a layer where the user is conducting modifications, and dimensions of render of the image in the browser.
+To fix this I had to get 'clientWidth', and 'clientHeight' properties from DOM (Document Object Model). These are width, and height values of the image rendered in the browser:
 ```
 const renderedWidth = image.clientWidth;
 const renderedHeight = image.clientHeight;
 ```
-And to properly overlay canvas on top of the image, I had yo get exact dimension of the image displayed in a browser. To do that I needed this code:I
+And to properly overlay canvas on top of the image in the browser, I had to get exact width, and height dimensions of the image displayed in the browser. To do that I needed this code:
 ```
 const canvasElement = canvasRef.current;
 canvasElement.width = renderedWidth;
 canvasElement.height = renderedHeight;
 ```
-Thanks to this both, the image and the canvas, have the same size, and they fit in a window of the browser.
+Thanks to these both, the image and the canvas, have the same size, and they fit in a window of the browser.
 Here is the whole function where the code from above was used:
 ```
   useEffect(() => {
