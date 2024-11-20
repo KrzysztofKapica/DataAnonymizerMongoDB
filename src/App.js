@@ -84,7 +84,7 @@ function App() {
         response = await axios.get(`http://localhost:5000/api/image_by_object_id/${objectId}`);
       }
 
-      // Initialize coordinates to an empty array if it's null
+      // Initialize coordinates to an empty array, or empty array if it's null
       const imageRecordData = {
         ...response.data,
         coordinates: response.data.coordinates || [],
@@ -168,6 +168,7 @@ function App() {
         canvasElement.width = renderedWidth;
         canvasElement.height = renderedHeight;
 
+        // It provides API for drawing on canvas (getContext)
         const ctx = canvasElement.getContext('2d');
 
         // Draw the image and scaled rectangles on the canvas (view window)
@@ -542,7 +543,7 @@ function App() {
     // Display the input field for image name
     return (
       <div style={{ textAlign: 'center' }}>
-        <h3>Right arrow - next image | Left arrow - previous image | Enter - save image | Backspace - delete a rectangle | Space - draw a new rectangle</h3>
+        <h4>Right arrow - next image | Left arrow - previous image | Enter - save image | Backspace - delete a rectangle | Space - draw a new rectangle</h4>
         <input
           type="text"
           value={imageNameInput}
@@ -558,7 +559,7 @@ function App() {
 
   return (
     <div style={{ textAlign: 'center' }}>
-      <h3>Right arrow - next image | Left arrow - previous image | Enter - save image | Backspace - delete a rectangle | Space - draw a new rectangle</h3>
+      <h4>Right arrow - next image | Left arrow - previous image | Enter - save image | Backspace - delete a rectangle | Space - draw a new rectangle</h4>
       {loading ? (
         <p>Loading image record...</p>
       ) : error ? (
