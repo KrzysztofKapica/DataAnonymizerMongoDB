@@ -12,7 +12,7 @@ function App() {
   const [imageRecord, setImageRecord] = useState(null);
   const [imagePath, setImagePath] = useState('');
   const [imageDataUrl, setImageDataUrl] = useState('');
-  const [loading, setLoading] = useState(false); // Starts as false
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
@@ -128,7 +128,6 @@ function App() {
     if (mode === 'pending' || mode === 'byName' || mode === 'all') {
       fetchImageRecord();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, currentPendingIndex, currentAllIndex]);
 
   // Function to draw the entire canvas, including the image and the rectangles
@@ -197,7 +196,7 @@ function App() {
     }
   };
 
-  // Mouse events for dragging rectangles or drawing new ones
+  // Mouse events for dragging rectangles, or drawing new ones
   const handleMouseDown = (e) => {
     if (!canvasRef.current || !imageRecord || !Array.isArray(imageRecord.coordinates)) return;
 
@@ -219,7 +218,7 @@ function App() {
         lower_right: { x: mouseX / scaleX, y: mouseY / scaleY },
       });
     } else {
-      // Check if mouse is within any rectangle for dragging
+      // Check if mouse cursor is within any rectangle for dragging
       for (let i = 0; i < imageRecord.coordinates.length; i++) {
         const { upper_left, lower_right } = imageRecord.coordinates[i];
 
@@ -486,11 +485,6 @@ function App() {
         setSelectedRectangleIndex(null);
       }
     }
-    // check this function!!
-    if (e.key === ' ' && !drawingMode) {
-      // Enable drawing mode for a single rectangle
-      setDrawingMode(true);
-    }
   },[
     drawingMode,
     setDrawingMode,
@@ -499,7 +493,7 @@ function App() {
     setCurrentPendingIndex,
     allImageIds,
     setCurrentAllIndex,
-    handleSaveImage, // Include handleSaveImage here
+    handleSaveImage,
     selectedRectangleIndex,
     imageRecord,
     setImageRecord,
