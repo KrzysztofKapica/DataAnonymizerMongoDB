@@ -38,6 +38,19 @@ function App() {
     };
   };
 
+  // Helper function to count scale
+  const countScale = (imgData) => {
+    const image = imgData;
+    if (!image) {
+      console.log('No image metadata.');
+    } 
+
+    const scaleX = image.clientWidth / image.naturalWidth;
+    const scaleY = image.clientHeight / image.naturalHeight;
+
+    return {scaleX, scaleY};
+  };
+
   // Function to prompt the user to select a directory
   const handleSelectDirectory = async () => {
     try {
@@ -153,25 +166,17 @@ function App() {
       const image = imageRef.current;
 
       image.onload = () => {
-        const naturalWidth = image.naturalWidth;
-        const naturalHeight = image.naturalHeight;
-
-        const renderedWidth = image.clientWidth;
-        const renderedHeight = image.clientHeight;
-
-        // Calculate scaling factors for width and height
-        const scaleX = renderedWidth / naturalWidth;
-        const scaleY = renderedHeight / naturalHeight;
+        const { scaleX, scaleY } = countScale(image);
 
         const canvasElement = canvasRef.current;
-        canvasElement.width = renderedWidth;
-        canvasElement.height = renderedHeight;
-
+        canvasElement.width = image.clientWidth;
+        canvasElement.height = image.clientHeight;
+        
         // It provides API for drawing on canvas (getContext)
         const ctx = canvasElement.getContext('2d');
 
         // Draw the image and scaled rectangles on the canvas (view window)
-        drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, renderedWidth, renderedHeight, 0.5); //0.5 opacity for viewing
+        drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, image.clientWidth, image.clientHeight, 0.5); //0.5 opacity for viewing
       };
 
       image.src = imageDataUrl;
@@ -205,11 +210,7 @@ function App() {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const renderedWidth = imageRef.current.clientWidth;
-    const renderedHeight = imageRef.current.clientHeight;
-
-    const scaleX = renderedWidth / imageRef.current.naturalWidth;
-    const scaleY = renderedHeight / imageRef.current.naturalHeight;
+    const { scaleX, scaleY } = countScale(imageRef.current);
 
     if (drawingMode) {
       // Start drawing a new rectangle
@@ -258,11 +259,7 @@ function App() {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const renderedWidth = imageRef.current.clientWidth;
-    const renderedHeight = imageRef.current.clientHeight;
-
-    const scaleX = renderedWidth / imageRef.current.naturalWidth;
-    const scaleY = renderedHeight / imageRef.current.naturalHeight;
+    const { scaleX, scaleY } = countScale(imageRef.current);
 
     if (drawingMode && newRectangle) {
       // Update new rectangle dimensions
@@ -475,10 +472,9 @@ function App() {
         // Redraw the canvas without the deleted rectangle
         const canvasElement = canvasRef.current;
         const ctx = canvasElement.getContext('2d');
-        const renderedWidth = imageRef.current.clientWidth;
-        const renderedHeight = imageRef.current.clientHeight;
-        const scaleX = renderedWidth / imageRef.current.naturalWidth;
-        const scaleY = renderedHeight / imageRef.current.naturalHeight;
+
+        const { scaleX, scaleY } = countScale(imageRef.current);
+
         drawCanvas(ctx, imageRef.current, newCoordinates, scaleX, scaleY, canvasElement.width, canvasElement.height);
 
         // Reset the selected rectangle index
