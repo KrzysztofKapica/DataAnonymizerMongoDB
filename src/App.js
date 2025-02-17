@@ -80,7 +80,7 @@ function App() {
           objectId = pendingImageIds[currentPendingIndex];
         }
         response = await axios.get(`http://localhost:5000/api/image_by_object_id/${objectId}`);
-      } else if (mode === 'byName') {
+      } else if (mode === 'byName' && imageName && imageName.trim().length > 0) {
         response = await axios.get(`http://localhost:5000/api/image_by_name`, {
           params: { name: imageName },
         });
@@ -547,132 +547,132 @@ function App() {
     );
   }
 
-  if (mode === 'pending' || mode === 'all') {
-    return (
-      <div style={{ textAlign: 'center' }}>
-        <h4>Right arrow - next image | Left arrow - previous image | Enter - save image | Backspace - delete a rectangle | Space - draw a new rectangle</h4>
-        {loading ? (
-          <p>Loading image record...</p>
-        ) : error ? (
-          <p>{error}</p>
-        ) : imageRecord ? (
-          <div>
-            <p>Object ID: {imageRecord.object_id}</p>
-            <p>Image Path: {imagePath}</p>
-            {/* Display the button and selected directory name */}
-            <div style={{ marginBottom: '10px' }}>
-              <button onClick={handleSelectDirectory}>Select directory to save images</button>
-              {directoryHandle && (
-                <span style={{ marginLeft: '10px' }}>
-                  Selected Directory: {directoryHandle.name}
-                </span>
-              )}
-            </div>
-            {/* Buttons in one row above the image */}
-            <div
-              style={{
-                marginTop: '10px',
-                marginBottom: '10px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              {(mode === 'pending' || mode === 'all') && (
-                <div>
-                  <button
-                    onClick={() => {
-                      if (mode === 'pending') {
-                        setCurrentPendingIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-                      } else if (mode === 'all') {
-                        setCurrentAllIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-                      }
-                    }}
-                    disabled={
-                      (mode === 'pending' && currentPendingIndex <= 0) ||
-                      (mode === 'all' && currentAllIndex <= 0)
-                    }
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (mode === 'pending') {
-                        setCurrentPendingIndex((prevIndex) =>
-                          Math.min(prevIndex + 1, pendingImageIds.length - 1)
-                        );
-                      } else if (mode === 'all') {
-                        setCurrentAllIndex((prevIndex) =>
-                          Math.min(prevIndex + 1, allImageIds.length - 1)
-                        );
-                      }
-                    }}
-                    disabled={
-                      (mode === 'pending' && currentPendingIndex >= pendingImageIds.length - 1) ||
-                      (mode === 'all' && currentAllIndex >= allImageIds.length - 1)
-                    }
-                    style={{ marginLeft: '10px' }}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-              <button onClick={handleSaveImage} style={{ marginLeft: '10px' }}>
-                Save Image
-              </button>
-              <button onClick={() => setMode(null)} style={{ marginLeft: '10px' }}>
-                Menu
-              </button>
-            </div>
-            {/* Image and canvas with left and right margins */}
-            <div
-              style={{
-                position: 'relative',
-                display: 'inline-block',
-                width: '70%', // Image width (100% - left and right margins)
-                marginLeft: '15%',
-                marginRight: '15%',
-              }}
-            >
-              {imageDataUrl && (
-                <div>
-                  {/* Image element */}
-                  <img
-                    ref={imageRef}
-                    src={imageDataUrl}
-                    alt={`Object ID ${imageRecord.object_id}`}
-                    style={{ display: 'block', width: '100%' }}
-                  />
-                  {/* Canvas element for drawing and interacting with rectangles */}
-                  <canvas
-                    ref={canvasRef}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      pointerEvents: 'all',
-                      cursor: dragging
-                        ? 'grabbing'
-                        : drawingMode
-                        ? 'crosshair'
-                        : 'grab',
-                      width: '100%', // Ensure canvas matches image width
-                      height: '100%', // Ensure canvas matches image height
-                    }}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                  />
-                </div>
-              )}
-            </div>
+  // For all other cases (pending, all, or byName when imageRecord is available)
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <h3>
+        Right arrow - next image | Left arrow - previous image | Enter - save image |
+        Backspace - delete a rectangle | Space - draw a new rectangle
+      </h3>
+      {loading ? (
+        <p>Loading image record...</p>
+      ) : error ? (
+        <p>{error}</p>
+      ) : imageRecord ? (
+        <div>
+          <p>Object ID: {imageRecord.object_id}</p>
+          <p>Image Path: {imagePath}</p>
+          {/* Directory selection */}
+          <div style={{ marginBottom: '10px' }}>
+            <button onClick={handleSelectDirectory}>Select directory to save images</button>
+            {directoryHandle && (
+              <span style={{ marginLeft: '10px' }}>
+                Selected Directory: {directoryHandle.name}
+              </span>
+            )}
           </div>
-        ) : (
-          <p>No image record found.</p>
-        )}
-      </div>
-    );
-  }  
+          {/* Navigation and other buttons */}
+          <div
+            style={{
+              marginTop: '10px',
+              marginBottom: '10px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            {(mode === 'pending' || mode === 'all') && (
+              <>
+                <button
+                  onClick={() => {
+                    if (mode === 'pending') {
+                      setCurrentPendingIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+                    } else if (mode === 'all') {
+                      setCurrentAllIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+                    }
+                  }}
+                  disabled={
+                    (mode === 'pending' && currentPendingIndex <= 0) ||
+                    (mode === 'all' && currentAllIndex <= 0)
+                  }
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => {
+                    if (mode === 'pending') {
+                      setCurrentPendingIndex((prevIndex) =>
+                        Math.min(prevIndex + 1, pendingImageIds.length - 1)
+                      );
+                    } else if (mode === 'all') {
+                      setCurrentAllIndex((prevIndex) =>
+                        Math.min(prevIndex + 1, allImageIds.length - 1)
+                      );
+                    }
+                  }}
+                  disabled={
+                    (mode === 'pending' && currentPendingIndex >= pendingImageIds.length - 1) ||
+                    (mode === 'all' && currentAllIndex >= allImageIds.length - 1)
+                  }
+                  style={{ marginLeft: '10px' }}
+                >
+                  Next
+                </button>
+              </>
+            )}
+            <button onClick={handleSaveImage} style={{ marginLeft: '10px' }}>
+              Save Image
+            </button>
+            <button onClick={() => setMode(null)} style={{ marginLeft: '10px' }}>
+              Menu
+            </button>
+          </div>
+          {/* Image and canvas container */}
+          <div
+            style={{
+              position: 'relative',
+              display: 'inline-block',
+              width: '70%',
+              marginLeft: '15%',
+              marginRight: '15%',
+            }}
+          >
+            {imageDataUrl && (
+              <>
+                <img
+                  ref={imageRef}
+                  src={imageDataUrl}
+                  alt={`Object ID ${imageRecord.object_id}`}
+                  style={{ display: 'block', width: '100%' }}
+                />
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    pointerEvents: 'all',
+                    cursor: dragging
+                      ? 'grabbing'
+                      : drawingMode
+                      ? 'crosshair'
+                      : 'grab',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p>No image record found.</p>
+      )}
+    </div>
+  );
 }
 
 export default App;
