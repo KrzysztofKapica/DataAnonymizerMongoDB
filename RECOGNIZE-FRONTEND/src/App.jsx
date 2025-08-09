@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import './App.css';
+import { saveImageFile } from './services/saveImageFile';
+import { useDirectoryPicker } from './hooks/useDirectoryPicker';
+import { roundRectangleCoordinates } from './utils/roundRectangleCoordinates';
+import { countScale } from './utils/countScale';
+import { drawCanvas } from './utils/drawCanvas';
+import { updateImageMetadataApi } from './services/updateImageData';
 
 function App() {
   const [mode, setMode] = useState(null);
@@ -22,45 +29,15 @@ function App() {
   const [drawingMode, setDrawingMode] = useState(false);
   const [newRectangle, setNewRectangle] = useState(null);
   const [lastFolderName, setLastFolderName] = useState('');
-  const [directoryHandle, setDirectoryHandle] = useState(null);
 
-  // Helper function to round rectangle coordinates to integers
-  const roundRectangleCoordinates = (rect) => {
-    return {
-      upper_left: {
-        x: Math.floor(rect.upper_left.x),
-        y: Math.floor(rect.upper_left.y),
-      },
-      lower_right: {
-        x: Math.floor(rect.lower_right.x),
-        y: Math.floor(rect.lower_right.y),
-      },
-    };
+  // Helper to reset state and show main menu
+  const goToMenu = () => {
+    setPendingImageIds([]);
+    setCurrentPendingIndex(0);
+    setMode(null);
   };
 
-  // Helper function to count scale
-  const countScale = (imgData) => {
-    const image = imgData;
-    if (!image) {
-      console.log('No image metadata.');
-    } 
-
-    const scaleX = image.clientWidth / image.naturalWidth;
-    const scaleY = image.clientHeight / image.naturalHeight;
-
-    return {scaleX, scaleY};
-  };
-
-  // Function to prompt the user to select a directory
-  const handleSelectDirectory = async () => {
-    try {
-      const handle = await window.showDirectoryPicker();
-      setDirectoryHandle(handle);
-      alert(`Directory "${handle.name}" selected.`);
-    } catch (error) {
-      console.error('Directory selection canceled or failed:', error);
-    }
-  };
+  const { handle: directoryHandle, pick, error: dirError } = useDirectoryPicker();
 
   // Function to fetch image records based on the mode
   const fetchImageRecord = async (objectId = null, imageName = '') => {
@@ -143,23 +120,6 @@ function App() {
     }
   }, [mode, currentPendingIndex, currentAllIndex]);
 
-  // Function to draw the entire canvas, including the image and the rectangles
-  const drawCanvas = useCallback(
-    (ctx, image, coordinates, scaleX, scaleY, width, height, opacity) => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(image, 0, 0, width, height);
-      drawRectangles(ctx, coordinates, scaleX, scaleY, opacity);
-      if (newRectangle) {
-        const { upper_left, lower_right } = newRectangle;
-        const x = upper_left.x * scaleX;
-        const y = upper_left.y * scaleY;
-        const rectWidth = (lower_right.x - upper_left.x) * scaleX;
-        const rectHeight = (lower_right.y - upper_left.y) * scaleY;
-        ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
-        ctx.fillRect(x, y, rectWidth, rectHeight);
-      }
-    }, [newRectangle]);  
-
   // Sync canvas size and draw rectangles when image loads
   useEffect(() => {
     if (imageDataUrl && imageRecord && imageRef.current) {
@@ -176,30 +136,12 @@ function App() {
         const ctx = canvasElement.getContext('2d');
 
         // Draw the image and scaled rectangles on the canvas (view window)
-        drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, image.clientWidth, image.clientHeight, 0.5); //0.5 opacity for viewing
+        drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, image.clientWidth, image.clientHeight, 0.5, newRectangle); //0.5 opacity for viewing
       };
 
       image.src = imageDataUrl;
     }
   }, [imageDataUrl, imageRecord, drawCanvas]);
-
-  // Function to draw rectangles on the canvas
-  const drawRectangles = (ctx, coordinates, scaleX, scaleY, opacity) => {
-    if (coordinates && Array.isArray(coordinates) && coordinates.length > 0) {
-      ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`;
-      coordinates.forEach((rect) => {
-        const { upper_left, lower_right } = rect;
-
-        // Scale coordinates to match rendered image size
-        const x = upper_left.x * scaleX;
-        const y = upper_left.y * scaleY;
-        const width = (lower_right.x - upper_left.x) * scaleX;
-        const height = (lower_right.y - upper_left.y) * scaleY;
-
-        ctx.fillRect(x, y, width, height);
-      });
-    }
-  };
 
   // Mouse events for dragging rectangles, or drawing new ones
   const handleMouseDown = (e) => {
@@ -245,7 +187,6 @@ function App() {
           return;
         }
       }
-
       // If no rectangle is clicked, reset selection
       setSelectedRectangleIndex(null);
     }
@@ -253,27 +194,40 @@ function App() {
 
   const handleMouseMove = (e) => {
     if (!canvasRef.current || !imageRecord) return;
-
+  
     const canvasElement = canvasRef.current;
     const rect = canvasElement.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-
+  
     const { scaleX, scaleY } = countScale(imageRef.current);
-
+    const ctx = canvasElement.getContext('2d');
+    const image = imageRef.current;
+  
     if (drawingMode && newRectangle) {
-      // Update new rectangle dimensions
-      setNewRectangle({
+      // Build next preview rectangle
+      const nextRect = {
         ...newRectangle,
         lower_right: { x: mouseX / scaleX, y: mouseY / scaleY },
-      });
-    } else if (dragging && selectedRectangleIndex !== null && Array.isArray(imageRecord.coordinates)) {
-      // Update the selected rectangle's position (adjusted for scaling)
+      };
+      setNewRectangle(nextRect);
+  
+      // Redraw with preview
+      drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, canvasElement.width, canvasElement.height, 0.5, nextRect
+      );
+      return;
+    } else if (
+      dragging &&
+      selectedRectangleIndex !== null &&
+      Array.isArray(imageRecord.coordinates)
+    ) {
       const newCoordinates = [...imageRecord.coordinates];
       const selectedRectangle = newCoordinates[selectedRectangleIndex];
-      const rectWidth = selectedRectangle.lower_right.x - selectedRectangle.upper_left.x;
-      const rectHeight = selectedRectangle.lower_right.y - selectedRectangle.upper_left.y;
-
+      const rectWidth =
+        selectedRectangle.lower_right.x - selectedRectangle.upper_left.x;
+      const rectHeight =
+        selectedRectangle.lower_right.y - selectedRectangle.upper_left.y;
+  
       selectedRectangle.upper_left = {
         x: (mouseX - offset.x) / scaleX,
         y: (mouseY - offset.y) / scaleY,
@@ -282,22 +236,26 @@ function App() {
         x: selectedRectangle.upper_left.x + rectWidth,
         y: selectedRectangle.upper_left.y + rectHeight,
       };
-
-      // Round the coordinates
-      newCoordinates[selectedRectangleIndex] = roundRectangleCoordinates(selectedRectangle);
-
+  
+      newCoordinates[selectedRectangleIndex] =
+        roundRectangleCoordinates(selectedRectangle);
+  
       setImageRecord({
         ...imageRecord,
         coordinates: newCoordinates,
       });
+  
+      // Redraw without a preview rectangle
+      drawCanvas(ctx, image, newCoordinates, scaleX, scaleY, canvasElement.width, canvasElement.height, 0.5, null
+      );
+      return;
     }
-
-    // Redraw the canvas
-    const ctx = canvasElement.getContext('2d');
-    const image = imageRef.current;
-    drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, canvasElement.width, canvasElement.height);
+  
+    // Default redraw (no changes), still pass null for preview
+    drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, canvasElement.width, canvasElement.height, 0.5, null
+    );
   };
-
+  
   const handleMouseUp = useCallback(() => {
     if (drawingMode && newRectangle) {
       // Add the new rectangle to the coordinates list
@@ -328,101 +286,40 @@ function App() {
     setSelectedRectangleIndex,
     canvasRef,]);
 
-  // Function to send updated metadata to the server
-  const updateImageMetadata = useCallback(async () => {
-    try {
-      // Ensure coordinates are integers before sending
+    const updateImageMetadata = useCallback(async () => {
+      if (!imageRecord) return;
+    
       const roundedCoordinates = imageRecord.coordinates.map(roundRectangleCoordinates);
-
-      const updatedData = {
+    
+      await updateImageMetadataApi({
         object_id: imageRecord.object_id,
-        to_do: 'done',
         coordinates: roundedCoordinates,
-      };
-
-      await axios.post('http://localhost:5000/api/update_image_metadata', updatedData);
-
+        to_do: 'done',
+      });
+    
       console.log('Image metadata updated successfully.');
-    } catch (error) {
-      console.error('Failed to update image metadata:', error);
-    }
-  }, [imageRecord]);
+    }, [imageRecord]);
 
-  // Save the current state of the canvas as an image at original resolution
   const handleSaveImage = useCallback(async () => {
-    if (imageRef.current && imageRecord && directoryHandle) {
-      const image = imageRef.current;
-      const naturalWidth = image.naturalWidth;
-      const naturalHeight = image.naturalHeight;
-
-      // Create an off-screen canvas with the image's natural dimensions
-      const fullSizeCanvas = document.createElement('canvas');
-      fullSizeCanvas.width = naturalWidth;
-      fullSizeCanvas.height = naturalHeight;
-      const ctx = fullSizeCanvas.getContext('2d');
-
-      // Draw the image and rectangles onto the off-screen canvas with opacity 1
-      const scaleX = 1; // No scaling needed since we're at natural dimensions
-      const scaleY = 1;
-      drawCanvas(ctx, image, imageRecord.coordinates, scaleX, scaleY, naturalWidth, naturalHeight, 1); // 1 full opacity
+    if (!directoryHandle) return alert('Please select a directory first.');
+    if (!imageRef.current || !imageRecord) return;
   
-      // Extract the file name from the image path
-      const originalFileName = imagePath.split('/').pop();
-
-      // Adjust the quality parameter to reduce file size
-      const quality = 0.5; // Adjust this value between 0 and 1 as needed      
-
-      // Get the last folder name from imagePath
-      const pathParts = imagePath.split('/');
-      const lastFolderName = pathParts[pathParts.length - 2] || 'UnknownFolder';
-
-      // Create a subdirectory handle
-      let subdirectoryHandle;
-      try {
-        subdirectoryHandle = await directoryHandle.getDirectoryHandle(
-          lastFolderName,
-          { create: true }
-        );
-      } catch (error) {
-        console.error('Failed to get or create subdirectory:', error);
-        return;
-      }
-
-      // Convert the canvas to a blob
-      fullSizeCanvas.toBlob(
-        async (blob) => {
-          try {
-            // Create a file handle in the subdirectory
-            const fileHandle = await subdirectoryHandle.getFileHandle(
-              originalFileName,
-              { create: true }
-            );
-            // Create a writable stream
-            const writable = await fileHandle.createWritable();
-            // Write the blob to the file
-            await writable.write(blob);
-            await writable.close();
-            alert(`File saved to ${lastFolderName}/${originalFileName}`);
-            await updateImageMetadata(); // Send updated metadata to the server
-          } catch (error) {
-            console.error('Failed to save file:', error);
-          }
-        },
-        'image/jpeg',
-        quality
-      );
-    } else {
-      alert('Please select a directory first.');
-    }
+    await saveImageFile(
+      imageRef.current,
+      imageRecord.coordinates,
+      directoryHandle,
+      imagePath,
+      updateImageMetadata
+    );
+  
+    alert('Image saved!');
   }, [
-    imageRef,
-    imageRecord,
     directoryHandle,
-    drawCanvas,
+    imageRecord,
     imagePath,
     updateImageMetadata,
   ]);
-
+  
   const handleKeyDown = useCallback(
   (e) => {
     if (e.key === ' ') {
@@ -542,135 +439,138 @@ function App() {
         />
         <button onClick={() => fetchImageRecord(null, imageNameInput)}>Load Image</button>
         {error && <p>{error}</p>}
-        <button onClick={() => setMode(null)}>Menu</button>
+        <button onClick={goToMenu}>Menu</button>
       </div>
     );
   }
 
   // For all other cases (pending, all, or byName when imageRecord is available)
   return (
-    <div style={{ textAlign: 'center' }}>
-      <h3>
-        Right arrow - next image | Left arrow - previous image | Enter - save image |
-        Backspace - delete a rectangle | Space - draw a new rectangle
-      </h3>
-      {loading ? (
-        <p>Loading image record...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : imageRecord ? (
-        <div>
-          <p>Object ID: {imageRecord.object_id}</p>
-          <p>Image Path: {imagePath}</p>
-          {/* Directory selection */}
-          <div style={{ marginBottom: '10px' }}>
-            <button onClick={handleSelectDirectory}>Select directory to save images</button>
-            {directoryHandle && (
-              <span style={{ marginLeft: '10px' }}>
-                Selected Directory: {directoryHandle.name}
-              </span>
-            )}
-          </div>
-          {/* Navigation and other buttons */}
-          <div
-            style={{
-              marginTop: '10px',
-              marginBottom: '10px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            {(mode === 'pending' || mode === 'all') && (
-              <>
-                <button
-                  onClick={() => {
-                    if (mode === 'pending') {
-                      setCurrentPendingIndex((prevIndex) => Math.max(prevIndex - 1, 0));
-                    } else if (mode === 'all') {
-                      setCurrentAllIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+    <div className='app'>
+      <div style={{ textAlign: 'center' }}>
+        <h3>
+          Right arrow - next image | Left arrow - previous image | Enter - save image |
+          Backspace - delete a rectangle | Space - draw a new rectangle
+        </h3>
+        {loading ? (
+          <p>Loading image record...</p>
+        ) : error ? (
+          <p>{error}</p>
+        ) : imageRecord ? (
+          <div>
+            <p>Object ID: {imageRecord.object_id}</p>
+            <p>Image Path: {imagePath}</p>
+            {/* Directory selection */}
+            <div style={{ marginBottom: '10px' }}>
+              <button onClick={pick}>Select directory to save images</button>
+              {directoryHandle && (
+                <span style={{ marginLeft: '10px' }}>
+                  Selected Directory: {directoryHandle.name}
+                </span>
+              )}
+              {dirError && <span style={{ color: 'salmon', marginLeft: 10 }}>{dirError}</span>}
+            </div>
+            {/* Navigation and other buttons */}
+            <div
+              style={{
+                marginTop: '10px',
+                marginBottom: '10px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              {(mode === 'pending' || mode === 'all') && (
+                <>
+                  <button
+                    onClick={() => {
+                      if (mode === 'pending') {
+                        setCurrentPendingIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+                      } else if (mode === 'all') {
+                        setCurrentAllIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+                      }
+                    }}
+                    disabled={
+                      (mode === 'pending' && currentPendingIndex <= 0) ||
+                      (mode === 'all' && currentAllIndex <= 0)
                     }
-                  }}
-                  disabled={
-                    (mode === 'pending' && currentPendingIndex <= 0) ||
-                    (mode === 'all' && currentAllIndex <= 0)
-                  }
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => {
-                    if (mode === 'pending') {
-                      setCurrentPendingIndex((prevIndex) =>
-                        Math.min(prevIndex + 1, pendingImageIds.length - 1)
-                      );
-                    } else if (mode === 'all') {
-                      setCurrentAllIndex((prevIndex) =>
-                        Math.min(prevIndex + 1, allImageIds.length - 1)
-                      );
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (mode === 'pending') {
+                        setCurrentPendingIndex((prevIndex) =>
+                          Math.min(prevIndex + 1, pendingImageIds.length - 1)
+                        );
+                      } else if (mode === 'all') {
+                        setCurrentAllIndex((prevIndex) =>
+                          Math.min(prevIndex + 1, allImageIds.length - 1)
+                        );
+                      }
+                    }}
+                    disabled={
+                      (mode === 'pending' && currentPendingIndex >= pendingImageIds.length - 1) ||
+                      (mode === 'all' && currentAllIndex >= allImageIds.length - 1)
                     }
-                  }}
-                  disabled={
-                    (mode === 'pending' && currentPendingIndex >= pendingImageIds.length - 1) ||
-                    (mode === 'all' && currentAllIndex >= allImageIds.length - 1)
-                  }
-                  style={{ marginLeft: '10px' }}
-                >
-                  Next
-                </button>
-              </>
-            )}
-            <button onClick={handleSaveImage} style={{ marginLeft: '10px' }}>
-              Save Image
-            </button>
-            <button onClick={() => setMode(null)} style={{ marginLeft: '10px' }}>
-              Menu
-            </button>
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Next
+                  </button>
+                </>
+              )}
+              <button onClick={handleSaveImage} style={{ marginLeft: '10px' }}>
+                Save Image
+              </button>
+              <button onClick={goToMenu} style={{ marginLeft: '10px' }}>
+                Menu
+              </button>
+            </div>
+            {/* Image and canvas container */}
+            <div
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: '70%',
+                marginLeft: '15%',
+                marginRight: '15%',
+              }}
+            >
+              {imageDataUrl && (
+                <>
+                  <img
+                    ref={imageRef}
+                    src={imageDataUrl}
+                    alt={`Object ID ${imageRecord.object_id}`}
+                    style={{ display: 'block', width: '100%' }}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      pointerEvents: 'all',
+                      cursor: dragging
+                        ? 'grabbing'
+                        : drawingMode
+                        ? 'crosshair'
+                        : 'grab',
+                      width: '100%',
+                      height: '100%',
+                    }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                  />
+                </>
+              )}
+            </div>
           </div>
-          {/* Image and canvas container */}
-          <div
-            style={{
-              position: 'relative',
-              display: 'inline-block',
-              width: '70%',
-              marginLeft: '15%',
-              marginRight: '15%',
-            }}
-          >
-            {imageDataUrl && (
-              <>
-                <img
-                  ref={imageRef}
-                  src={imageDataUrl}
-                  alt={`Object ID ${imageRecord.object_id}`}
-                  style={{ display: 'block', width: '100%' }}
-                />
-                <canvas
-                  ref={canvasRef}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'all',
-                    cursor: dragging
-                      ? 'grabbing'
-                      : drawingMode
-                      ? 'crosshair'
-                      : 'grab',
-                    width: '100%',
-                    height: '100%',
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      ) : (
-        <p>No image record found.</p>
-      )}
+        ) : (
+          <p>No image record found.</p>
+        )}
+      </div>
     </div>
   );
 }
