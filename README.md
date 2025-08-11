@@ -27,8 +27,7 @@ Thanks by REACT library the user has an access to the images through Chrome brow
 To run this application on Linux you need to have installed:
 - Node.js v18.20.2, or higher
 - MongoDB - I used Docker for it
-- Install REACT library in directory of the application
-- Download this repository
+- Git to clone the repo
 
 Structure of the application should look like this:
 ```bash
